@@ -28,7 +28,7 @@ jobs:
       - name: Install CDK and dependencies
         run: |
           npm install -g aws-cdk
-          npm ci
+          yarn install
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -83,7 +83,7 @@ jobs:
       - name: Install CDK and dependencies
         run: |
           npm install -g aws-cdk
-          npm ci
+          yarn install
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
