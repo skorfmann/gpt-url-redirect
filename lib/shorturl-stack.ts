@@ -1,16 +1,38 @@
-import * as cdk from 'aws-cdk-lib';
+// lib/url-shortener-stack.ts
+import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
+import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
+import { RestApi } from 'aws-cdk-lib/aws-apigateway';
+import * as path from 'path';
 
-export class ShorturlStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+export class UrlShortenerStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const table = new Table(this, 'UrlsTable', {
+      partitionKey: { name: 'shortUrl', type: AttributeType.STRING },
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'ShorturlQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const createShortUrlLambda = new NodejsFunction(this, 'CreateShortUrlLambda', {
+      entry: path.join(__dirname, 'shorturl-create.handler.ts'),
+      environment: { TABLE_NAME: table.tableName },
+    });
+
+    const redirectShortUrlLambda = new NodejsFunction(this, 'RedirectShortUrlLambda', {
+      entry: path.join(__dirname, 'shorturl-redirect.handler.ts'),
+      environment: { TABLE_NAME: table.tableName },
+    });
+
+    table.grantReadWriteData(createShortUrlLambda);
+    table.grantReadWriteData(redirectShortUrlLambda);
+
+    const api = new RestApi(this, 'UrlShortenerApi');
+    const createShortUrlResource = api.root.addResource('create');
+    const redirectShortUrlResource = api.root.addResource('{shortUrl}');
+
+    createShortUrlResource.addMethod('POST', new LambdaIntegration(createShortUrlLambda));
+    redirectShortUrlResource.addMethod('GET', new LambdaIntegration(redirectShortUrlLambda));
   }
 }
