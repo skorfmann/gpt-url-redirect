@@ -41,7 +41,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy backend
-        run: yarn cdk deploy --outputs-file backend-stack-outputs.json
+        run: yarn cdk deploy ShorturlStack --outputs-file backend-stack-outputs.json
         env:
           AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
