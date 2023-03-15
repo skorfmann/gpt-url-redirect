@@ -6,6 +6,8 @@ import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
 import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
 import { RestApi } from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
+import { MonitoringConstruct } from './monitoring';
+import { BillingAlarmConstruct } from './billing-alarm';
 
 export class UrlShortenerStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -34,5 +36,19 @@ export class UrlShortenerStack extends Stack {
 
     createShortUrlResource.addMethod('POST', new LambdaIntegration(createShortUrlLambda));
     redirectShortUrlResource.addMethod('GET', new LambdaIntegration(redirectShortUrlLambda));
+
+    new MonitoringConstruct(this, 'Monitoring', {
+      api: api,
+      createShortUrlLambda: createShortUrlLambda,
+      redirectShortUrlLambda: redirectShortUrlLambda,
+      apiInvocationThreshold: 10,
+      lambdaInvocationThreshold: 20,
+      evaluationPeriods: 1,
+    });
+
+    new BillingAlarmConstruct(this, 'BillingAlarm', {
+      billingThreshold: 10, // Set the desired billing threshold in USD
+      emailAddress: 'sebastian@korfmann.net', // Set the desired email address for notifications
+    });
   }
 }
