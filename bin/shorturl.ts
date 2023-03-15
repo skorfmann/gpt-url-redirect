@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { UrlShortenerStack } from '../lib/shorturl-stack';
+import { FrontendStack } from '../lib/frontend'
 
 const app = new cdk.App();
 new UrlShortenerStack(app, 'ShorturlStack', {
@@ -19,3 +20,5 @@ new UrlShortenerStack(app, 'ShorturlStack', {
 
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 });
+
+new FrontendStack(app, 'FrontendStack', {});

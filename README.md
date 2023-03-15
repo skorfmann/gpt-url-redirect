@@ -2,6 +2,8 @@
 
 This URL Shortener application is built with the AWS Cloud Development Kit (CDK) in TypeScript. It provides a simple RESTful API to create and manage short URLs that redirect to original URLs. The [prompts](./prompt.md) which were used to generate this.
 
+![Screenshot](./url-shortener-frontend/screenshot.png)
+
 ## Architecture
 
 The application consists of two AWS Lambda functions and an Amazon DynamoDB table, exposed via an Amazon API Gateway REST API.

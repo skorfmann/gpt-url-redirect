@@ -1,0 +1,5 @@
+{
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": "file:///Users/sebastian/projects/gpt/shorturl/.github/workflows/deploy.yml"
+  }
+}

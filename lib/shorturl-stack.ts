@@ -3,7 +3,7 @@ import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Table, AttributeType } from 'aws-cdk-lib/aws-dynamodb';
-import { LambdaIntegration } from 'aws-cdk-lib/aws-apigateway';
+import { LambdaIntegration, Cors } from 'aws-cdk-lib/aws-apigateway';
 import { RestApi } from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
 import { MonitoringConstruct } from './monitoring';
@@ -30,7 +30,13 @@ export class UrlShortenerStack extends Stack {
     table.grantReadWriteData(createShortUrlLambda);
     table.grantReadWriteData(redirectShortUrlLambda);
 
-    const api = new RestApi(this, 'UrlShortenerApi');
+    const api = new RestApi(this, 'UrlShortenerApi', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type'],
+      },
+    });
     const createShortUrlResource = api.root.addResource('create');
     const redirectShortUrlResource = api.root.addResource('{shortUrl}');
 

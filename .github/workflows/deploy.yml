@@ -1,0 +1,96 @@
+name: Full Deployment Process with OIDC
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  AWS_DEFAULT_REGION: eu-central-1
+
+jobs:
+  deploy_backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install CDK and dependencies
+        run: |
+          npm install -g aws-cdk
+          npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActionsDeploySession
+
+      - name: Deploy backend stack
+        run: |
+          cdk deploy ShorturlStack --require-approval never --outputs-file backend-stack-outputs.json
+
+  build_frontend:
+    needs: deploy_backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install dependencies
+        run: |
+          cd url-shortener-frontend
+          npm ci
+
+      - name: Update frontend config.js with backend API URL
+        run: |
+          API_URL=$(cat backend-stack-outputs.json | jq -r '.ShorturlStack.UrlShortenerApiEndpoint23405F0E' | sed 's/\/$//')
+          echo "const config = { API_ENDPOINT: '${API_URL}' };" > url-shortener-frontend/src/config.js
+          echo "export default config;" >> url-shortener-frontend/src/config.js
+
+      - name: Build frontend
+        run: |
+          cd url-shortener-frontend
+          npm run build
+
+  deploy_frontend:
+    needs: build_frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install CDK and dependencies
+        run: |
+          npm install -g aws-cdk
+          npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActionsDeploySession
+
+      - name: Deploy frontend stack
+        run: |
+          cdk deploy FrontendStack --require-approval never
