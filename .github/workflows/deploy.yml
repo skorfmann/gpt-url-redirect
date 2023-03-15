@@ -1,48 +1,19 @@
-name: Full Deployment Process with OIDC
+name: Deploy to AWS
 
 on:
   push:
     branches:
       - main
 
+env:
+  AWS_REGION: eu-central-1
+
 permissions:
   id-token: write
   contents: read
 
-env:
-  AWS_REGION: eu-central-1
-  AWS_DEFAULT_REGION: eu-central-1
-
 jobs:
-  deploy_backend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 14
-
-      - name: Install CDK and dependencies
-        run: |
-          npm install -g aws-cdk
-          yarn install
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: GitHubActionsDeploySession
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy backend stack
-        run: |
-          cdk deploy ShorturlStack --require-approval never --outputs-file backend-stack-outputs.json
-
-  build_frontend:
-    needs: deploy_backend
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -54,9 +25,25 @@ jobs:
           node-version: 14
 
       - name: Install dependencies
+        run: yarn install
+
+      - name: Build frontend (preliminary)
+        working-directory: url-shortener-frontend
         run: |
-          cd url-shortener-frontend
           npm ci
+          npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: aws-deployment
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy backend
+        run: yarn cdk deploy --outputs-file backend-stack-outputs.json
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
       - name: Update frontend config.js with backend API URL
         run: |
@@ -65,34 +52,10 @@ jobs:
           echo "export default config;" >> url-shortener-frontend/src/config.js
 
       - name: Build frontend
-        run: |
-          cd url-shortener-frontend
-          npm run build
+        working-directory: url-shortener-frontend
+        run: npm run build
 
-  deploy_frontend:
-    needs: build_frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 14
-
-      - name: Install CDK and dependencies
-        run: |
-          npm install -g aws-cdk
-          yarn install
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: GitHubActionsDeploySession
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy frontend stack
-        run: |
-          cdk deploy FrontendStack --require-approval never
+      - name: Deploy frontend
+        run: yarn cdk deploy FrontendStack
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
