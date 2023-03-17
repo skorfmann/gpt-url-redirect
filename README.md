@@ -12,6 +12,24 @@ The application consists of two AWS Lambda functions and an Amazon DynamoDB tabl
 - Redirect Short URL Lambda: Processes incoming requests to redirect from a short URL to its corresponding original URL.
 - Amazon DynamoDB: Stores the mapping between short URLs and original URLs.
 
+### Backend
+
+```mermaid
+flowchart TD
+    A[API Gateway] -->|POST /create| B1[Lambda: CreateShortUrlHandler]
+    A -->|GET /:shortUrl| B2[Lambda: RedirectToLongUrlHandler]
+    B1 --> C[DynamoDB: UrlMappingsTable]
+    B2 --> C
+
+    subgraph Serverless Backend Stack
+        A
+        B1
+        B2
+        C
+    end
+
+```
+
 ## Getting Started
 
 ### Prerequisites
